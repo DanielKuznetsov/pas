@@ -1,42 +1,76 @@
 // components/TodoListener.jsx
 'use client'
 
-import { useEffect, useRef } from 'react'
-import supabase from '@/utils/supabase/client'
+import { useEffect, useRef, useState } from 'react'
+import supabase from '@/utils/supabase/client' // createBrowserClient instance
 
 export default function TodoListener() {
-    const audioRef = useRef(null)
+  const [todos, setTodos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const audioRef = useRef(null)
 
-    useEffect(() => {
-        const channel = supabase
-            .channel('todos')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'todos' },
-                (payload) => {
-                    console.log('Change received!', payload)
+  // one function to (re)load the list
+  const fetchTodos = async () => {
+    const { data, error } = await supabase
+      .from('todos')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-                    // refresh page
-                    window.location.reload()
+    if (error) {
+      console.error('Error fetching todos:', error)
+      return
+    }
+    setTodos(data ?? [])
+  }
 
-                    // play chime (clone node so multiple events can overlap)
-                    if (audioRef.current) {
-                        const snd = audioRef.current.cloneNode()
-                        snd.play().catch(() => { })
-                    }
-                }
-            )
-            .subscribe()
+  useEffect(() => {
+    let unsubscribed = false
 
-        return () => {
-            supabase.removeChannel(channel) // cleanup on unmount
+    // initial load
+    ;(async () => {
+      setLoading(true)
+      await fetchTodos()
+      if (!unsubscribed) setLoading(false)
+    })()
+
+    // subscribe to realtime changes
+    const channel = supabase
+      .channel('realtime:todos')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'todos' },
+        async (_payload) => {
+          // play chime (clone so rapid events can overlap)
+          if (audioRef.current) {
+            const snd = audioRef.current.cloneNode()
+            snd.play().catch(() => {})
+          }
+
+          // simplest: refetch the whole list
+          await fetchTodos()
+
+          // optional: for smoother UX, patch locally using _payload instead of full refetch
         }
-    }, [])
+      )
+      .subscribe()
 
-    return (
-        <>
-            {/* preload ensures audio is ready before first event */}
-            <audio ref={audioRef} src="/chime.mp3" preload="auto" />
-        </>
-    )
+    return () => {
+      unsubscribed = true
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  return (
+    <>
+      {/* audio asset in /public/chime.mp3 */}
+      <audio ref={audioRef} src="/chime.mp3" preload="auto" />
+
+      {loading && <div>Loading…</div>}
+      {!loading && todos.map((todo) => (
+        <div key={todo.id}>
+          <h1>{todo.name}</h1>
+        </div>
+      ))}
+    </>
+  )
 }
