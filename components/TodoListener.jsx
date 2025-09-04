@@ -1,32 +1,42 @@
 // components/TodoListener.jsx
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import supabase from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
 
 export default function TodoListener() {
-  const router = useRouter()
+    const audioRef = useRef(null)
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('todos')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'todos' },
-        (payload) => {
-          console.log('Change received!', payload)
-          // here you can call router.refresh() or update local state
+    useEffect(() => {
+        const channel = supabase
+            .channel('todos')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'todos' },
+                (payload) => {
+                    console.log('Change received!', payload)
 
-          window.location.reload()
+                    // refresh page
+                    window.location.reload()
+
+                    // play chime (clone node so multiple events can overlap)
+                    if (audioRef.current) {
+                        const snd = audioRef.current.cloneNode()
+                        snd.play().catch(() => { })
+                    }
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel) // cleanup on unmount
         }
-      )
-      .subscribe()
+    }, [])
 
-    return () => {
-      supabase.removeChannel(channel) // cleanup on unmount
-    }
-  }, [])
-
-  return null // it doesn't render anything
+    return (
+        <>
+            {/* preload ensures audio is ready before first event */}
+            <audio ref={audioRef} src="/chime.mp3" preload="auto" />
+        </>
+    )
 }
