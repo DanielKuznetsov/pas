@@ -1,49 +1,47 @@
-// middleware.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// Routes that require auth
+// Define protected routes
 const isProtectedRoute = createRouteMatcher([
-  "/orders(.*)",
-  "/private(.*)",
+  // TODO: add more protected routes
+  "/private", // —> just an example
+  "/orders/(.*)"
 ]);
 
-// Your auth pages (and Clerk defaults) – hide these when already signed in
+// Define authentication routes
 const isAuthRoute = createRouteMatcher([
-  "/auth/login(.*)",
-  "/auth/signup(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
+  "/auth/login",
+  "/auth/signup",
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  const { userId } = auth();
-  const url = req.nextUrl;
+// Use clerkMiddleware to handle authentication
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    const { userId } = auth();
 
-  // If signed in, don't show auth pages
-  if (isAuthRoute(req) && userId) {
-    const dest = url.clone();
-    dest.pathname = "/";                 // or "/dashboard"
-    dest.search = "";
-    return NextResponse.redirect(dest);
+    if (!userId) {
+      const loginUrl = new URL("/auth/login", req.url);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
-  // If not signed in, protect private routes
-  if (isProtectedRoute(req) && !userId) {
-    const dest = url.clone();
-    dest.pathname = "/auth/login";
-    // so we can send them back after login
-    dest.searchParams.set("redirect_url", url.pathname + url.search);
-    return NextResponse.redirect(dest);
+  if (isAuthRoute(req)) {
+    const { userId } = auth();
+
+    if (userId) {
+      const homeUrl = new URL("/", req.url);
+      return NextResponse.redirect(homeUrl);
+    }
   }
 
   return NextResponse.next();
 });
 
-// Run middleware on all pages except static assets, _next, and webhooks
+// Ensure the matcher is correctly configured
 export const config = {
   matcher: [
-    "/((?!.+\\.[\\w]+$|_next|favicon.ico|api/webhooks).*)",
+    "/((?!.+\\.[\\w]+$|_next).*)", // Exclude static files
     "/",
+    "/(api|trpc)(.*)" // Match API routes
   ],
 };
