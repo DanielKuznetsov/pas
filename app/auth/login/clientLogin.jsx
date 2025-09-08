@@ -168,10 +168,6 @@ export default function LoginPage() {
         }
     }
 
-    if (!userId) {
-        router.push("/auth/login")
-    }
-
     return (
         <div className="min-h-screen flex flex-col">
             <div className="flex-1 flex flex-col justify-center items-center p-4">
