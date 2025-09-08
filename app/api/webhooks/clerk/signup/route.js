@@ -3,6 +3,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import supabase from "@/utils/supabase/client"
+import { redirect } from "next/navigation";
 
 export async function POST(req) {
     console.log("Webhook received");
@@ -30,7 +31,7 @@ export async function POST(req) {
     const svix_id = headerPayload.get("svix-id");
     const svix_timestamp = headerPayload.get("svix-timestamp");
     const svix_signature = headerPayload.get("svix-signature");
-        
+
     // Log svix headers for debugging
     console.log("svix-id:", svix_id);
     console.log("svix-timestamp:", svix_timestamp);
@@ -87,7 +88,7 @@ export async function POST(req) {
 
 async function saveUserDataToDatabase(user) {
     console.log("Saving user data to database:", user);
-    
+
     const id = user.id;
     const email = user.email_addresses[0].email_address;
     const firstName = user.first_name;
@@ -104,8 +105,6 @@ async function saveUserDataToDatabase(user) {
         console.error("Error inserting user into database:", error);
         throw new Error(error.message);
     }
-
-    console.log("User created successfully:", data);
 }
 
 async function updateUserDataInDatabase(user) {

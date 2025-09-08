@@ -118,6 +118,8 @@ export default function SignUpPage() {
             toast.error("Verification failed. Please try again.")
         } finally {
             setIsLoading(false)
+            router.refresh()
+            router.push("/")
         }
     }
 
