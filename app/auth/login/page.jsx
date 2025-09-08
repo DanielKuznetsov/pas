@@ -168,126 +168,118 @@ export default function LoginPage() {
         }
     }
 
-    // if user is logged in, redirect to home page
-    if (isLoaded && signIn) {
-        router.replace("/")
-    }
-
     return (
-        isLoaded && signIn ? (
-            <div className="min-h-screen flex flex-col">
-                <div className="flex-1 flex flex-col justify-center items-center p-4">
-                    <div className="w-full">
-                        <div className="mb-8 absolute top-4 left-4">
-                            <Button asChild variant="outline">
-                                <Link href="/" className="flex items-center gap-2">
-                                    <ArrowLeft size={14} />
-                                    <span>Back to Homepage</span>
-                                </Link>
-                            </Button>
+        <div className="min-h-screen flex flex-col">
+            <div className="flex-1 flex flex-col justify-center items-center p-4">
+                <div className="w-full">
+                    <div className="mb-8 absolute top-4 left-4">
+                        <Button asChild variant="outline">
+                            <Link href="/" className="flex items-center gap-2">
+                                <ArrowLeft size={14} />
+                                <span>Back to Homepage</span>
+                            </Link>
+                        </Button>
+                    </div>
+
+                    <motion.div
+                        className="bg-white p-6 sm:p-8 rounded-lg shadow-authCard max-w-md w-full mx-auto"
+                        initial={{ scale: 0.85, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <div className="text-center mb-6">
+                            <h1 className="text-2xl font-semibold mb-2">
+                                {verifying ? "Verify Your Email" : "Welcome back to Millo"}
+                            </h1>
+                            <p className="text-gray-600 text-sm">
+                                {verifying
+                                    ? `We've sent a verification code to ${email}.`
+                                    : "Please use your email address to sign in."}
+                            </p>
                         </div>
 
-                        <motion.div
-                            className="bg-white p-6 sm:p-8 rounded-lg shadow-authCard max-w-md w-full mx-auto"
-                            initial={{ scale: 0.85, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="text-center mb-6">
-                                <h1 className="text-2xl font-semibold mb-2">
-                                    {verifying ? "Verify Your Email" : "Welcome back to Millo"}
-                                </h1>
-                                <p className="text-gray-600 text-sm">
-                                    {verifying
-                                        ? `We've sent a verification code to ${email}.`
-                                        : "Please use your email address to sign in."}
-                                </p>
-                            </div>
+                        <FormProvider {...form}>
+                            {verifying ? (
+                                <div className='space-y-4'>
+                                    <form onSubmit={handleVerification}>
+                                        <FormItem className="flex items-center justify-center mb-2">
+                                            <FormControl>
+                                                <InputOTP
+                                                    maxLength={6}
+                                                    value={code}
+                                                    onChange={(value) => setCode(value)}
+                                                >
+                                                    <InputOTPGroup>
+                                                        <InputOTPSlot index={0} />
+                                                        <InputOTPSlot index={1} />
+                                                        <InputOTPSlot index={2} />
+                                                        <InputOTPSlot index={3} />
+                                                        <InputOTPSlot index={4} />
+                                                        <InputOTPSlot index={5} />
+                                                    </InputOTPGroup>
+                                                </InputOTP>
+                                            </FormControl>
+                                        </FormItem>
 
-                            <FormProvider {...form}>
-                                {verifying ? (
-                                    <div className='space-y-4'>
-                                        <form onSubmit={handleVerification}>
-                                            <FormItem className="flex items-center justify-center mb-2">
-                                                <FormControl>
-                                                    <InputOTP
-                                                        maxLength={6}
-                                                        value={code}
-                                                        onChange={(value) => setCode(value)}
-                                                    >
-                                                        <InputOTPGroup>
-                                                            <InputOTPSlot index={0} />
-                                                            <InputOTPSlot index={1} />
-                                                            <InputOTPSlot index={2} />
-                                                            <InputOTPSlot index={3} />
-                                                            <InputOTPSlot index={4} />
-                                                            <InputOTPSlot index={5} />
-                                                        </InputOTPGroup>
-                                                    </InputOTP>
-                                                </FormControl>
-                                            </FormItem>
+                                        <div className="text-center text-xs text-neutral-500 font-light mb-4">
+                                            {code === "" ? (
+                                                <>Enter your one-time password.</>
+                                            ) : (
+                                                <>You entered: {code}</>
+                                            )}
+                                        </div>
 
-                                            <div className="text-center text-xs text-neutral-500 font-light mb-4">
-                                                {code === "" ? (
-                                                    <>Enter your one-time password.</>
-                                                ) : (
-                                                    <>You entered: {code}</>
-                                                )}
-                                            </div>
+                                        <LoadingButton isLoading={isLoading} icon={arrowRightIcon} loadingText="Verifying..." buttonText="Verify" className="w-full" />
+                                    </form>
+                                    <Button
+                                        variant="link"
+                                        className="w-full text-sm"
+                                        onClick={handleResendOTP}
+                                    >
+                                        Resend verification code
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+                                        <FormField
+                                            control={form.control}
+                                            name="email"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className='text-primary'>Email</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="email"
+                                                            placeholder="Enter your email"
+                                                            {...field}
+                                                            onBlur={(e) => {
+                                                                field.onBlur();
+                                                                if (e.target.value !== field.value) {
+                                                                    form.setValue('email', e.target.value);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                            <LoadingButton isLoading={isLoading} icon={arrowRightIcon} loadingText="Verifying..." buttonText="Verify" className="w-full" />
-                                        </form>
-                                        <Button
-                                            variant="link"
-                                            className="w-full text-sm"
-                                            onClick={handleResendOTP}
-                                        >
-                                            Resend verification code
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <Form {...form}>
-                                        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-                                            <FormField
-                                                control={form.control}
-                                                name="email"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel className='text-primary'>Email</FormLabel>
-                                                        <FormControl>
-                                                            <Input
-                                                                type="email"
-                                                                placeholder="Enter your email"
-                                                                {...field}
-                                                                onBlur={(e) => {
-                                                                    field.onBlur();
-                                                                    if (e.target.value !== field.value) {
-                                                                        form.setValue('email', e.target.value);
-                                                                    }
-                                                                }}
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                        <LoadingButton isLoading={isLoading} icon={arrowRightIcon} loadingText="Sending code..." buttonText="Continue" className="w-full" />
+                                    </form>
+                                </Form>
+                            )}
+                        </FormProvider>
 
-                                            <LoadingButton isLoading={isLoading} icon={arrowRightIcon} loadingText="Sending code..." buttonText="Continue" className="w-full" />
-                                        </form>
-                                    </Form>
-                                )}
-                            </FormProvider>
-
-                            {/* {!verifying && (
+                        {/* {!verifying && (
                             <div className='flex flex-col gap-2 text-[14px] font-light text-neutral-500 items-center mt-6'>
                                 <Link href="/auth/signup">Create an account</Link>
                             </div>
                         )} */}
-                        </motion.div>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
-        ) : (
-            <div>Loading...</div>
-        ))
+        </div>
+    )
 }
