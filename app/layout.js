@@ -19,7 +19,7 @@ export default function RootLayout({
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en">
         <body className="antialiased bg-background text-foreground">
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<Loading buttonText="Loading..." variant="outline" />}>
             <SignedIn>
               <div className="relative">
 

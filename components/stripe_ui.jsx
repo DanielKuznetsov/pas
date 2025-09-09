@@ -36,7 +36,7 @@ export default function StripeUI() {
       })
 
       console.log('Payment Link:', url)
-      
+
       setLink(url)
     } catch (err) {
       console.error(err)
@@ -48,16 +48,16 @@ export default function StripeUI() {
 
   return (
     <div className="flex flex-col gap-3 border rounded-md p-4 max-w-xl">
-      <Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title shown on Stripe" />
+      <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title shown on Stripe" />
       <textarea
         rows={6}
         className="border rounded p-2"
         value={bullets}
-        onChange={e=>setBullets(e.target.value)}
+        onChange={e => setBullets(e.target.value)}
         placeholder="- bullet 1\n- bullet 2"
       />
-      <Input type="number" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Subtotal (USD)" />
-      <Input type="number" step="0.01" value={tip} onChange={e=>setTip(e.target.value)} placeholder="Tip (USD)" />
+      <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Subtotal (USD)" />
+      <Input type="number" step="0.01" value={tip} onChange={e => setTip(e.target.value)} placeholder="Tip (USD)" />
 
       <Button onClick={handleCreateLink} disabled={loading}>
         {loading ? 'Creating…' : 'Generate Payment Link'}

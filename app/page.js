@@ -8,7 +8,7 @@ export default function Home() {
       <SignedIn>
         <StripeUI />
 
-        <DBButton />
+        {/* <DBButton /> */}
       </SignedIn>
 
       <SignedOut>

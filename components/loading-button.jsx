@@ -6,10 +6,11 @@ export default function LoadingButton({
     children,
     loadingText = "Loading...",
     buttonText = "Submit",
+    variant = "default",
     ...props
 }) {
     return (
-        <Button {...props} disabled={isLoading}>
+        <Button {...props} disabled={isLoading} variant={variant}>
             {isLoading ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
