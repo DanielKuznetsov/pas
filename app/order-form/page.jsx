@@ -12,8 +12,9 @@ const fmt = (cents) =>
     minimumFractionDigits: 2,
   });
 
-const RESTAURANT_ID = 'a7a961dd-8711-4e00-85a0-e9c482492b24';
-const SELLER_CONNECT_ID = 'acct_1S5A7CCsCcObMHy7'; // Stripe connected account id
+const RESTAURANT_ID = process.env.NEXT_PUBLIC_RESTAURANT_ID; // Needs to be updated cause in production, the restaurant will have a different UUID
+// const RESTAURANT_ID = 'a7a961dd-8711-4e00-85a0-e9c482492b24'; // Needs to be updated cause in production, the restaurant will have a different UUID
+const SELLER_CONNECT_ID = process.env.NEXT_PUBLIC_SELLER_CONNECT_ID; // Can stay the same since we're working in the test environment
 
 export default function NewOrderForm() {
   /* ---------------- customer ---------------- */

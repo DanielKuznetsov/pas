@@ -2,6 +2,7 @@
 import { auth } from "@clerk/nextjs/server";
 import supabase from "@/utils/supabase/client";
 import NewOrderForm from "@/app/order-form/page";
+import AllOrders from "@/components/all_orders";
 
 // Optional: ensure this route is always rendered dynamically
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export default async function Home() {
 
   return (
     <div className="flex gap-4 p-4">
-      {role === "admin" ? <NewOrderForm /> : <p>You are a restaurant owner</p>}
+      {role === "admin" ? <NewOrderForm /> : <AllOrders />}
       {/* <DBButton /> */}
     </div>
   );

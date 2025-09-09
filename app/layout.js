@@ -22,8 +22,8 @@ export default function RootLayout({
           {/* Keep fallback simple and server-safe */}
           <Suspense fallback={<div className="p-2 text-sm text-muted-foreground">Loading…</div>}>
             <SignedIn>
-              <div className="relative">
-                <div className="absolute top-4 right-4">
+              <div className="relative h-screen">
+                <div className="absolute bottom-4 right-4">
                   <LogoutLink />
                 </div>
                 {children}

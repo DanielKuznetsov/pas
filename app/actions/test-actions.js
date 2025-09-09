@@ -2,6 +2,7 @@
 
 import Stripe from 'stripe'
 import supabase from '@/utils/supabase/client'
+import { auth } from '@clerk/nextjs/server'
 
 // --- Stripe ---
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -51,7 +52,7 @@ export async function createLink({
   title = 'Custom Order',
   amount,
   tip = 0,
-  sellerAccountId = 'acct_1S5A7CCsCcObMHy7',
+  sellerAccountId = 'acct_1S5A7CCsCcObMHy7', // TODO: change this to the restaurant's Stripe Connect account id
   dinerPct = 0.075,
 }) {
   const toCents = (n) => Math.round(Number(n) * 100)
@@ -303,6 +304,8 @@ export async function createOrderWithPaymentLink(payload) {
     payment_breakdown: { gross, processing, applicationFee, tax, localFee, discountTotal },
   };
 
+  console.log('ORDER ROW', orderRow)
+
   const { data: inserted, error: insErr } = await supabase
     .from('orders')
     .insert(orderRow)
@@ -311,4 +314,24 @@ export async function createOrderWithPaymentLink(payload) {
   if (insErr) throw new Error(insErr.message);
 
   return { url: link.url, order_id: inserted.id };
+}
+
+export async function getAllOrders() {
+  const { userId } = await auth();
+  console.log('USER ID', userId)
+
+  // Find users with this clerk_id
+  const { data: user, error: usersError } = await supabase.from('users').select('id').eq('clerk_id', userId);
+  console.log('USER', user)
+
+  const { data: restaurant, error: restaurantError } = await supabase.from('restaurants').select('id').eq('owner_clerk_id', user[0].id);
+  console.log('RESTAURANT DATA', restaurant)
+  
+  const restaurantIds = restaurant.map(restaurant => restaurant.id);
+
+  const { data: allOrders, error: allOrdersError } = await supabase.from('orders').select('*').in('restaurant_id', restaurantIds);
+  if (allOrdersError) throw new Error(allOrdersError.message);
+
+  console.log('ALL ORDERS', allOrders[0].items_snapshot.items)
+  return allOrders;
 }
