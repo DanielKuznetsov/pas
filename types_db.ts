@@ -15,9 +15,9 @@ export type Database = {
           address_line2: string | null
           city: string | null
           created_at: string
-          first_name: string | null
           general_notes: string | null
           id: string
+          name: string | null
           phone: string | null
           postal_code: number | null
           state: string | null
@@ -27,9 +27,9 @@ export type Database = {
           address_line2?: string | null
           city?: string | null
           created_at?: string
-          first_name?: string | null
           general_notes?: string | null
           id?: string
+          name?: string | null
           phone?: string | null
           postal_code?: number | null
           state?: string | null
@@ -39,9 +39,9 @@ export type Database = {
           address_line2?: string | null
           city?: string | null
           created_at?: string
-          first_name?: string | null
           general_notes?: string | null
           id?: string
+          name?: string | null
           phone?: string | null
           postal_code?: number | null
           state?: string | null

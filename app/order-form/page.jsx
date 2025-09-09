@@ -214,7 +214,7 @@ export default function NewOrderForm() {
         restaurant_id: RESTAURANT_ID,
         sellerAccountId: SELLER_CONNECT_ID,
         customer: {
-          first_name: customer.name,
+          name: customer.name,
           phone: customer.phone,
           address_line1: customer.address1 || undefined,
           address_line2: customer.address2 || undefined,
