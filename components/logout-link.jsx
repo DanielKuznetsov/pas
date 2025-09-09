@@ -1,16 +1,16 @@
-import { Button } from "@/components/ui/button"
-import { SignOutButton } from "@clerk/nextjs"
-import { LogOut } from "lucide-react"
+// components/logout-link.tsx
+'use client'
 
-export default async function LogoutLink() {
+import { Button } from '@/components/ui/button'
+import { SignOutButton } from '@clerk/nextjs'
+import { LogOut } from 'lucide-react'
+
+export default function LogoutLink() {
     return (
         <SignOutButton redirectUrl="/">
-            <Button
-                variant="outline"
-                className="w-full flex items-center justify-center gap-[6px]"
-            >
+            <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-[6px]">
                 <LogOut size={14} className="mt-[1px]" />
-                <p className="leading-7">Signout</p>
+                <span className="leading-7">Sign out</span>
             </Button>
         </SignOutButton>
     )
