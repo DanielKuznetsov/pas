@@ -139,7 +139,7 @@ export async function createLink({
  *   restaurant_id: string,
  *   sellerAccountId?: string,  // Stripe Connect account id for the restaurant
  *   customer: {
- *     first_name?: string,
+ *     name?: string,
  *     phone: string,
  *     address_line1?, address_line2?, city?, state?, postal_code?
  *   },
@@ -219,7 +219,7 @@ export async function createOrderWithPaymentLink(payload) {
       const { data: created, error: insErr } = await supabase
         .from('guests')
         .insert({
-          first_name: payload.customer?.first_name || null,
+          name: payload.customer?.name || null,
           phone,
           address_line1: payload.customer?.address_line1 || null,
           address_line2: payload.customer?.address_line2 || null,
