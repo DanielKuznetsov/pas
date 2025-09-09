@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { testAction, getTodos } from '@/app/actions/test-actions'
 import TodoListener from '@/components/TodoListener'
-import { useState, useEffect } from 'react'    
+import { useState, useEffect } from 'react'
 
 export default function DBButton() {
 
@@ -15,7 +15,7 @@ export default function DBButton() {
             console.error('Error fetching data:', error)
         } else {
             console.log('Data:', data)
-            
+
         }
     }
 

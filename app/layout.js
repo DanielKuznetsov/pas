@@ -4,6 +4,8 @@ import "./globals.css";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Suspense } from 'react';
 import Loading from "@/components/loading-button";
+import LogoutLink from "@/components/logout-link";
+import LoginLink from "@/components/login-link";
 
 export const metadata = {
   title: "Create Next App",
@@ -19,10 +21,21 @@ export default function RootLayout({
         <body className="antialiased bg-background text-foreground">
           <Suspense fallback={<Loading />}>
             <SignedIn>
-              {children}
+              <div className="relative">
+
+                <div className="absolute top-4 right-4">
+                  <LogoutLink />
+                </div>
+                {children}
+              </div>
             </SignedIn>
             <SignedOut>
-              {children}
+              <div className="relative">
+                <div className="absolute top-4 right-4">
+                  <LoginLink />
+                </div>
+                {children}
+              </div>
             </SignedOut>
           </Suspense>
 

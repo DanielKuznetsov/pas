@@ -7,6 +7,8 @@ export default function Home() {
     <div className="flex gap-4 p-4">
       <SignedIn>
         <StripeUI />
+
+        <DBButton />
       </SignedIn>
 
       <SignedOut>
