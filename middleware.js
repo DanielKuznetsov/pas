@@ -1,56 +1,53 @@
+// middleware.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 
 // Define protected routes
 const isProtectedRoute = createRouteMatcher([
-    // TODO: add more protected routes
-    "/private", // —> just an example
-    "/orders/(.*)"
+  "/private(.*)",          // unchanged
+  "/orders/(.*)",
 ]);
 
 // Define authentication routes
 const isAuthRoute = createRouteMatcher([
-    "/auth/login",
-    "/auth/signup",
+  "/auth/login(.*)",       // allow subpaths
+  "/auth/signup(.*)",
 ]);
 
-// Use clerkMiddleware to handle authentication
 export default clerkMiddleware(async (auth, req) => {
-    console.log("req", req)
-
-    const { userId } = await auth();
-
-    if (userId && isAuthRoute(req)) {
-        return NextResponse.redirect(new URL("/", req.url));
-    }
-
-    if (isProtectedRoute(req)) {
-        const { userId } = auth();
-
-        if (!userId) {
-            const loginUrl = new URL("/auth/login", req.url);
-            return NextResponse.redirect(loginUrl);
-        }
-    }
-
-    if (isAuthRoute(req)) {
-        const { userId } = auth();
-
-        if (userId) {
-            const homeUrl = new URL("/", req.url);
-            return NextResponse.redirect(homeUrl);
-        }
-    }
-
+  // --- NEW: let server actions / RSC / non-GET pass through untouched ---
+  if (req.method !== "GET") return NextResponse.next();
+  const accept = req.headers.get("accept") || "";
+  if (accept.includes("text/x-component") || req.headers.has("next-action")) {
     return NextResponse.next();
+  }
+  // (Optional, only if you match /api in your matcher)
+  if (req.nextUrl.pathname.startsWith("/api/webhooks")) {
+    return NextResponse.next();
+  }
+  // ----------------------------------------------------------------------
+
+  const { userId } = await auth(); // no await inside middleware
+
+  // If signed in, don't show auth pages
+  if (userId && isAuthRoute(req)) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
+  // Gate protected routes
+  if (isProtectedRoute(req) && !userId) {
+    const loginUrl = new URL("/auth/login", req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
 });
 
-// Ensure the matcher is correctly configured
+// Keep your matcher as-is
 export const config = {
-    matcher: [
-        "/((?!.+\\.[\\w]+$|_next).*)", // Exclude static files
-        "/",
-        "/(api|trpc)(.*)" // Match API routes
-    ],
+  matcher: [
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    "/",
+    "/(api|trpc)(.*)", // ok to keep if you need it
+  ],
 };
