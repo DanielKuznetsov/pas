@@ -99,7 +99,7 @@ async function saveUserDataToDatabase(user) {
 
     const { data, error } = await supabase
         .from("users")
-        .insert([{ clerk_id: id, clerk_email: email, first_name: firstName, last_name: lastName }]);
+        .insert([{ clerk_id: id, clerk_email: email, first_name: firstName, last_name: lastName, role: "restaurant" }]);
 
     if (error) {
         console.error("Error inserting user into database:", error);

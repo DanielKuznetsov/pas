@@ -15,7 +15,7 @@ const fmt = (cents) =>
 const RESTAURANT_ID = 'a7a961dd-8711-4e00-85a0-e9c482492b24';
 const SELLER_CONNECT_ID = 'acct_1S5A7CCsCcObMHy7'; // Stripe connected account id
 
-export default function Page() {
+export default function NewOrderForm() {
   /* ---------------- customer ---------------- */
   const [customer, setCustomer] = useState({
     name: '',

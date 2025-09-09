@@ -9,6 +9,230 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      guests: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          created_at: string
+          first_name: string | null
+          general_notes: string | null
+          id: string
+          phone: string | null
+          postal_code: number | null
+          state: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          created_at?: string
+          first_name?: string | null
+          general_notes?: string | null
+          id?: string
+          phone?: string | null
+          postal_code?: number | null
+          state?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          created_at?: string
+          first_name?: string | null
+          general_notes?: string | null
+          id?: string
+          phone?: string | null
+          postal_code?: number | null
+          state?: string | null
+        }
+        Relationships: []
+      }
+      line_items: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          prep_notes: string | null
+          quantity: number | null
+          subitems: Json | null
+          total_price_per_item: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          prep_notes?: string | null
+          quantity?: number | null
+          subitems?: Json | null
+          total_price_per_item?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          prep_notes?: string | null
+          quantity?: number | null
+          subitems?: Json | null
+          total_price_per_item?: number | null
+          unit_price?: number | null
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          created_at: string
+          discount_code: string | null
+          discount_pct: string | null
+          discount_total: number | null
+          fulfillment_type: string | null
+          guest_id: string | null
+          id: string
+          is_visible: boolean | null
+          items_snapshot: Json | null
+          local_fee: number | null
+          order_notes: string | null
+          order_number: string | null
+          payment_breakdown: Json | null
+          payment_status: string | null
+          restaurant_id: string | null
+          stripe_fee: number | null
+          stripe_link_id: string | null
+          stripe_payment_link: string | null
+          subtotal: number | null
+          tax: number | null
+          tip: number | null
+          total: number | null
+        }
+        Insert: {
+          created_at?: string
+          discount_code?: string | null
+          discount_pct?: string | null
+          discount_total?: number | null
+          fulfillment_type?: string | null
+          guest_id?: string | null
+          id?: string
+          is_visible?: boolean | null
+          items_snapshot?: Json | null
+          local_fee?: number | null
+          order_notes?: string | null
+          order_number?: string | null
+          payment_breakdown?: Json | null
+          payment_status?: string | null
+          restaurant_id?: string | null
+          stripe_fee?: number | null
+          stripe_link_id?: string | null
+          stripe_payment_link?: string | null
+          subtotal?: number | null
+          tax?: number | null
+          tip?: number | null
+          total?: number | null
+        }
+        Update: {
+          created_at?: string
+          discount_code?: string | null
+          discount_pct?: string | null
+          discount_total?: number | null
+          fulfillment_type?: string | null
+          guest_id?: string | null
+          id?: string
+          is_visible?: boolean | null
+          items_snapshot?: Json | null
+          local_fee?: number | null
+          order_notes?: string | null
+          order_number?: string | null
+          payment_breakdown?: Json | null
+          payment_status?: string | null
+          restaurant_id?: string | null
+          stripe_fee?: number | null
+          stripe_link_id?: string | null
+          stripe_payment_link?: string | null
+          subtotal?: number | null
+          tax?: number | null
+          tip?: number | null
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurants: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          created_at: string
+          email: string | null
+          hours: Json | null
+          id: string
+          manager_email: string | null
+          manager_phone: string | null
+          name: string | null
+          notes: string | null
+          owner_clerk_id: string | null
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          hours?: Json | null
+          id?: string
+          manager_email?: string | null
+          manager_phone?: string | null
+          name?: string | null
+          notes?: string | null
+          owner_clerk_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          hours?: Json | null
+          id?: string
+          manager_email?: string | null
+          manager_phone?: string | null
+          name?: string | null
+          notes?: string | null
+          owner_clerk_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurants_owner_clerk_id_fkey"
+            columns: ["owner_clerk_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       todos: {
         Row: {
           created_at: string
