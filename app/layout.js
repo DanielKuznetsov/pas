@@ -16,13 +16,13 @@ export default function RootLayout({
   children,
 }) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider>
       <html lang="en">
         <body className="antialiased bg-background text-foreground">
-          <Suspense fallback={<Loading buttonText="Loading..." variant="outline" />}>
+          {/* Keep fallback simple and server-safe */}
+          <Suspense fallback={<div className="p-2 text-sm text-muted-foreground">Loading…</div>}>
             <SignedIn>
               <div className="relative">
-
                 <div className="absolute top-4 right-4">
                   <LogoutLink />
                 </div>
@@ -38,7 +38,6 @@ export default function RootLayout({
               </div>
             </SignedOut>
           </Suspense>
-
           <Toaster richColors position="top-center" expand={false} closeButton />
         </body>
       </html>
