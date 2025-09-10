@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAllOrders } from '@/app/actions/test-actions';
 import supabase from '@/utils/supabase/client';
 
-/* ----------------------------- money/date utils ---------------------------- */
+/* -------------------------------------------------------------------------- */
+/* 💰 Money + 🗓️ Date helpers (tiny tools we reuse)                           */
+/* -------------------------------------------------------------------------- */
 const toNumber = (x) => (Number.isFinite(x) ? x : parseInt(x ?? 0, 10) || 0);
 const centsToDollars = (v) => (parseFloat(v ?? 0) || 0) / 100;
 
@@ -42,6 +44,9 @@ const fmtDateTime = (iso) => {
   }
 };
 
+/* -------------------------------------------------------------------------- */
+/* 🎫 Little colored status label                                             */
+/* -------------------------------------------------------------------------- */
 const badgeClasses = (status) => {
   const base =
     'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset';
@@ -61,7 +66,9 @@ const badgeClasses = (status) => {
   }
 };
 
-/* --------------------------- item shape normalizers ------------------------ */
+/* -------------------------------------------------------------------------- */
+/* 📦 Items live in different places depending on source                      */
+/* -------------------------------------------------------------------------- */
 const getItems = (order) => {
   if (Array.isArray(order?.items)) return order.items;
   if (Array.isArray(order?.items_snapshot?.items)) return order.items_snapshot.items;
@@ -73,6 +80,7 @@ const getItems = (order) => {
 const getSubitems = (item) =>
   item?.subitems || item?.modifiers || item?.options || item?.children || item?.addons || [];
 
+/* Read item prices as DOLLARS no matter how they were stored */
 const readItemUnitPrice = (item) => {
   if (item?.unit_price_cents != null) return centsToDollars(item.unit_price_cents);
   if (item?.price_cents != null) return centsToDollars(item.price_cents);
@@ -80,7 +88,6 @@ const readItemUnitPrice = (item) => {
   if (item?.price != null) return parseFloat(item.price) || 0; // dollars
   return 0;
 };
-
 const readItemTotal = (item) => {
   if (item?.total_price_cents != null) return centsToDollars(item.total_price_cents);
   if (item?.total_cents != null) return centsToDollars(item.total_cents);
@@ -88,7 +95,6 @@ const readItemTotal = (item) => {
   const qty = parseFloat(item?.qty ?? item?.quantity ?? 1) || 1;
   return readItemUnitPrice(item) * qty;
 };
-
 const readSubUnitPrice = (si) => {
   if (si?.unit_price_cents != null) return centsToDollars(si.unit_price_cents);
   if (si?.price_cents != null) return centsToDollars(si.price_cents);
@@ -96,7 +102,6 @@ const readSubUnitPrice = (si) => {
   if (si?.price != null) return parseFloat(si.price) || 0;
   return 0;
 };
-
 const readSubTotal = (si) => {
   if (si?.total_price_cents != null) return centsToDollars(si.total_price_cents);
   if (si?.total_cents != null) return centsToDollars(si.total_cents);
@@ -105,7 +110,9 @@ const readSubTotal = (si) => {
   return readSubUnitPrice(si) * q;
 };
 
-/* --------------------------- fulfillment + misc ---------------------------- */
+/* -------------------------------------------------------------------------- */
+/* 🚚 Fulfillment + 📞 phone helpers                                          */
+/* -------------------------------------------------------------------------- */
 const titleCase = (s) =>
   s ? String(s).replace(/[_-]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) : '';
 
@@ -120,6 +127,44 @@ const readFulfillmentType = (o) =>
     ?.toString()
     ?.toLowerCase();
 
+/* Distinct styles for Pickup vs Delivery (easy to tell apart) */
+const fulfillmentBadgeClasses = (fulfillment) => {
+  const base =
+    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset';
+  const f = (fulfillment || '').toLowerCase();
+  if (f.includes('delivery')) {
+    return `${base} bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-600/20`;
+  }
+  if (f.includes('pickup') || f.includes('pick up')) {
+    return `${base} bg-sky-50 text-sky-700 ring-sky-600/20`;
+  }
+  return `${base} bg-slate-50 text-slate-700 ring-slate-600/20`;
+};
+
+/* Delivery address (we try many shapes and make a single pretty line) */
+const readDeliveryAddress = (o) => {
+  const raw =
+    o?.delivery_address ??
+    o?.address ??
+    o?.shipping_address ??
+    o?.fulfillment?.address ??
+    o?.fulfillment?.delivery_address ??
+    null;
+
+  if (!raw) return '';
+
+  if (typeof raw === 'string') return raw;
+
+  const parts = [
+    raw.line1 ?? raw.address1 ?? raw.street ?? raw.street1,
+    raw.line2 ?? raw.address2 ?? raw.apartment ?? raw.unit,
+    [raw.city, raw.state ?? raw.region].filter(Boolean).join(', '),
+    raw.zip ?? raw.postal_code ?? raw.postcode,
+  ].filter(Boolean);
+
+  return parts.join(', ');
+};
+
 const normalizePhone = (p) => String(p || '').replace(/[^\d]/g, '');
 const prettyPhone = (p) => {
   const d = normalizePhone(p);
@@ -128,7 +173,9 @@ const prettyPhone = (p) => {
   return p || '—';
 };
 
-/* ----------------------------- visibility helper --------------------------- */
+/* -------------------------------------------------------------------------- */
+/* 👀 Visibility: if order says "not visible", we hide it                     */
+/* -------------------------------------------------------------------------- */
 const isVisible = (o) => {
   const v =
     o?.visibility ??
@@ -143,8 +190,9 @@ const isVisible = (o) => {
   return Boolean(v);
 };
 
-/* ----------------------------- payout (net) calc --------------------------- */
-// "Net a restaurant will get" ≈ gross - processing - applicationFee - localFee
+/* -------------------------------------------------------------------------- */
+/* 🧮 Net = gross - processing - appFee - localFee (in CENTS)                 */
+/* -------------------------------------------------------------------------- */
 const netToRestaurantCents = (order) => {
   const pb = order?.payment_breakdown || {};
   const gross = toNumber(pb.gross ?? order?.total);
@@ -155,28 +203,34 @@ const netToRestaurantCents = (order) => {
   return net;
 };
 
-/* -------------------------------- component -------------------------------- */
+/* ========================================================================== */
+/* 🧩 Component: AllOrders                                                    */
+/* ========================================================================== */
 export default function AllOrders() {
+  /* 🗃️ Where we keep orders we show */
   const [orders, setOrders] = useState([]);
+  /* ⏳ Are we loading? */
   const [loading, setLoading] = useState(true);
+  /* 🚨 Error message if something breaks */
   const [err, setErr] = useState(null);
 
-  // guests cache: { [guest_id]: {id, name, phone} }
+  /* 🧑 Guests cache: { [guest_id]: {id, name, phone} } so we can show name/phone */
   const [guests, setGuests] = useState({});
 
-  // UI state
+  /* 🎛️ Little controls on top */
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortKey, setSortKey] = useState('created_at_desc');
-  const [expanded, setExpanded] = useState(() => new Set());
+  const [expanded, setExpanded] = useState(() => new Set()); // which order cards are "open"
 
-  // realtime + chime + flash
+  /* 🔴 Live stuff: realtime connection, sound chime, and flashing changes */
   const [connected, setConnected] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const audioRef = useRef(null);
   const refetchTimer = useRef(null);
   const [flashIds, setFlashIds] = useState(() => new Set());
 
+  /* 🟠 Make one card glow for a few seconds so we notice it changed */
   const flashOrder = (id, ms = 3000) => {
     if (!id) return;
     setFlashIds((prev) => {
@@ -195,7 +249,9 @@ export default function AllOrders() {
     );
   };
 
-  /* ------------------------------- guests load ----------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* 👥 Guests: load + cache                                                  */
+  /* ------------------------------------------------------------------------ */
   const upsertGuests = (rows = []) =>
     setGuests((prev) => {
       const next = { ...prev };
@@ -220,8 +276,6 @@ export default function AllOrders() {
       .select('id,name,phone')
       .in('id', unknown);
 
-      console.log('NAME DATA', data)
-
     if (error) {
       console.error('fetchGuestsByIds error:', error);
       return;
@@ -234,7 +288,9 @@ export default function AllOrders() {
     await fetchGuestsByIds(ids);
   };
 
-  /* ----------------------------- data loaders ------------------------------ */
+  /* ------------------------------------------------------------------------ */
+  /* 📥 Load all orders                                                       */
+  /* ------------------------------------------------------------------------ */
   const fetchOrders = async (opts = { setBusy: true }) => {
     try {
       if (opts.setBusy) setLoading(true);
@@ -242,7 +298,7 @@ export default function AllOrders() {
       const arr = Array.isArray(data) ? data : [];
       setOrders(arr);
       setErr(null);
-      // hydrate guests for these orders
+      /* also load guests for these orders so name/phone show up */
       await fetchGuestsForOrders(arr);
     } catch (e) {
       console.error(e);
@@ -252,21 +308,23 @@ export default function AllOrders() {
     }
   };
 
-  /* -------------------------------- effects -------------------------------- */
-  // initial load
+  /* First thing we do: load orders */
   useEffect(() => {
     fetchOrders({ setBusy: true });
   }, []);
 
-  // realtime via Supabase (orders + guests)
+  /* ------------------------------------------------------------------------ */
+  /* 🔄 Realtime: listen for ORDER changes + optional GUEST updates           */
+  /* ------------------------------------------------------------------------ */
   useEffect(() => {
+    // listen to order changes (insert/update/delete)
     const ordersChannel = supabase
       .channel('realtime:orders')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
         async (payload) => {
-          // chime
+          // 🔊 play the chime (we clone the audio so quick events can overlap)
           if (soundOn && audioRef.current) {
             try {
               const snd = audioRef.current.cloneNode();
@@ -277,7 +335,7 @@ export default function AllOrders() {
             }
           }
 
-          // optimistic patch orders
+          // ⚡ optimistic patch so UI feels instant
           setOrders((prev) => {
             const next = [...prev];
             const id = payload?.new?.id ?? payload?.old?.id;
@@ -289,18 +347,18 @@ export default function AllOrders() {
             } else if (payload.eventType === 'UPDATE') {
               if (idx >= 0) next[idx] = { ...next[idx], ...payload.new };
               else next.unshift(payload.new);
-              flashOrder(id);
+              flashOrder(id); // ✨ make that card flash so we see it
             } else if (payload.eventType === 'DELETE') {
               if (idx >= 0) next.splice(idx, 1);
             }
             return next;
           });
 
-          // ensure guest present for this order
+          // make sure we have the guest info for this order
           const gid = payload?.new?.guest_id ?? payload?.old?.guest_id;
           if (gid) fetchGuestsByIds([gid]);
 
-          // reconcile after a short delay
+          // 🧽 small delayed refetch to keep everything perfectly in sync
           clearTimeout(refetchTimer.current);
           refetchTimer.current = setTimeout(() => fetchOrders({ setBusy: false }), 500);
         }
@@ -309,7 +367,8 @@ export default function AllOrders() {
         setConnected(status === 'SUBSCRIBED');
       });
 
-    // optional: listen to guest updates too (live name/phone edits)
+    // (optional) if a guest changes their name/phone, update our cache and
+    // softly flash any matching orders so staff notice.
     const guestsChannel = supabase
       .channel('realtime:guests')
       .on(
@@ -317,7 +376,6 @@ export default function AllOrders() {
         { event: '*', schema: 'public', table: 'guests' },
         (payload) => {
           if (payload.new) upsertGuests([payload.new]);
-          // flash any orders that belong to this guest ( UX hint )
           const gid = payload.new?.id ?? payload.old?.id;
           if (!gid) return;
           setOrders((prev) => {
@@ -336,7 +394,9 @@ export default function AllOrders() {
     };
   }, [soundOn]);
 
-  /* -------------------------------- filters -------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* 🧹 Only show visible orders + build filters                              */
+  /* ------------------------------------------------------------------------ */
   const visibleOrders = useMemo(() => orders.filter(isVisible), [orders]);
 
   const uniqueStatuses = useMemo(() => {
@@ -346,10 +406,11 @@ export default function AllOrders() {
     return ['all', ...Array.from(s)];
   }, [visibleOrders]);
 
-  // read display name/phone (prefer guests table)
+  /* pick name/phone from guests table for display */
   const displayName = (o) => (guests[o?.guest_id]?.name || '').trim();
   const displayPhone = (o) => guests[o?.guest_id]?.phone || '';
 
+  /* 🕵️ Search + sort */
   const filtered = useMemo(() => {
     const qraw = query.trim();
     const q = qraw.toLowerCase();
@@ -366,15 +427,15 @@ export default function AllOrders() {
       const totalDollarsStr = centsToDollars(totalCents).toFixed(2);
 
       const hay = [
-        o?.id,
+        o?.id,                       // order #
         o?.discount_code,
         o?.payment_status,
         readFulfillmentType(o),
-        name,
-        phone,
-        phoneDigits,
-        moneyFromCents(totalCents),
-        totalDollarsStr,
+        name,                        // guest name
+        phone,                       // pretty phone
+        phoneDigits,                 // digits-only phone
+        moneyFromCents(totalCents),  // "$12.34"
+        totalDollarsStr,             // "12.34"
         ...getItems(o).map((it) => it?.name),
       ]
         .filter(Boolean)
@@ -424,13 +485,15 @@ export default function AllOrders() {
       return next;
     });
 
-  /* ---------------------------------- UI ----------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* 🖼️ UI                                                                    */
+  /* ------------------------------------------------------------------------ */
   return (
     <div className="space-y-4 w-full">
-      {/* loud/quick chime (place chime.mp3 in /public) */}
+      {/* 🔊 loud/quick chime file (put /public/chime.mp3) */}
       <audio ref={audioRef} src="/chime.mp3" preload="auto" />
 
-      {/* styles for flashing updated cards */}
+      {/* ✨ Flash animation for updated cards */}
       <style jsx global>{`
         @keyframes ring-flash {
           0%,
@@ -446,7 +509,7 @@ export default function AllOrders() {
         }
       `}</style>
 
-      {/* Controls */}
+      {/* 🔎 Controls on top (search + filters) */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <input
@@ -482,7 +545,7 @@ export default function AllOrders() {
         </select>
       </div>
 
-      {/* Live status + sound */}
+      {/* 🟢 Live status + 🎚️ sound toggle */}
       <div className="flex flex-wrap items-center gap-2">
         <span
           className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm ${
@@ -507,7 +570,11 @@ export default function AllOrders() {
         </label>
       </div>
 
-      {/* States */}
+      {/* ===================================================================== */}
+      {/* 🧱 MASONRY LAYOUT: each card has its own height, neighbors don't grow */}
+      {/*    We use CSS columns to get a simple, solid "masonry" look.         */}
+      {/* ===================================================================== */}
+      {/* Loading state (can stay as grid) */}
       {loading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -531,52 +598,75 @@ export default function AllOrders() {
         </div>
       )}
 
-      {/* Grid */}
+      {/* Cards: masonry via columns; each card has break-inside: avoid */}
       {!loading && !err && filtered.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div
+          className="columns-1 sm:columns-2 xl:columns-3 gap-4 [column-fill:_balance]"
+          /* fallback inline style for older browsers */
+          style={{ columnGap: '1rem' }}
+        >
           {filtered.map((order) => {
             const items = getItems(order);
             const isOpen = expanded.has(order.id);
             const feesCents = toNumber(order?.stripe_fee) + toNumber(order?.local_fee);
-            const fulfillment = titleCase(readFulfillmentType(order) || 'Unknown');
+            const fulfillmentRaw = readFulfillmentType(order) || 'Unknown';
+            const fulfillment = titleCase(fulfillmentRaw);
             const name = (guests[order?.guest_id]?.name || '').trim();
             const phone = guests[order?.guest_id]?.phone || '';
             const flashing = flashIds.has(order.id);
 
+            const isDelivery = /delivery/.test(fulfillmentRaw);
+            const address = isDelivery ? readDeliveryAddress(order) : '';
+
             return (
               <div
                 key={order.id}
-                className={`rounded-2xl bg-white p-4 shadow-sm border transition-shadow ${
+                className={`mb-4 rounded-2xl bg-white p-4 shadow-sm border transition-shadow break-inside-avoid ${
                   flashing ? 'border-amber-400 flash-ring' : 'border-slate-200'
                 }`}
+                style={{ breakInside: 'avoid' /* extra safety for masonry columns */ }}
               >
-                {/* Header */}
+                {/* ------------------------------------------------------------------ */}
+                {/* 🧭 HEADER: big Name + Phone (easy to read), then order/meta row    */}
+                {/* ------------------------------------------------------------------ */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-900">
+                    {/* BIG name + phone so staff can quickly identify */}
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span
+                        className="max-w-[16rem] truncate text-lg font-semibold text-slate-900"
+                        title={name || '—'}
+                      >
+                        {name || '—'}
+                      </span>
+                      <span className="text-base font-semibold text-slate-800">
+                        {prettyPhone(phone)}
+                      </span>
+                    </div>
+
+                    {/* small row: order #, payment status, fulfillment chip */}
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-medium text-slate-700">
                         Order #{String(order?.id || '').slice(0, 8)}
                       </span>
                       <span className={badgeClasses(order?.payment_status)}>
                         {order?.payment_status || 'unknown'}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
-                        {fulfillment}
-                      </span>
+                      <span className={fulfillmentBadgeClasses(fulfillmentRaw)}>{fulfillment}</span>
                     </div>
 
-                    {/* Customer name + phone from guests table */}
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                      <span className="truncate max-w-[12rem]" title={name || '—'}>
-                        {name || '—'}
-                      </span>
-                      <span className="text-slate-400">•</span>
-                      <span className="font-medium">{prettyPhone(phone)}</span>
-                    </div>
-
+                    {/* timestamp */}
                     <div className="mt-1 text-xs text-slate-500">{fmtDateTime(order?.created_at)}</div>
+
+                    {/* show delivery address if this is a delivery order */}
+                    {isDelivery && address && (
+                      <div className="mt-2 rounded-lg bg-fuchsia-50 px-2 py-1 text-xs text-fuchsia-800 ring-1 ring-inset ring-fuchsia-200">
+                        <span className="font-semibold">Address:</span> {address}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Total on the right (clear and bold) */}
                   <div className="text-right">
                     <div className="text-xs uppercase tracking-wide text-slate-500">Total</div>
                     <div className="text-base font-semibold text-slate-900">
@@ -585,11 +675,12 @@ export default function AllOrders() {
                   </div>
                 </div>
 
-                {/* Meta */}
+                {/* ------------------------------------------------------------------ */}
+                {/* 🔢 Meta numbers: subtotal, tax, tip, fees, discount                */}
+                {/* ------------------------------------------------------------------ */}
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
                   <div className="rounded-lg bg-slate-50 px-2 py-1">
-                    Subtotal:{' '}
-                    <span className="font-medium">{moneyFromCents(order?.subtotal)}</span>
+                    Subtotal: <span className="font-medium">{moneyFromCents(order?.subtotal)}</span>
                   </div>
                   <div className="rounded-lg bg-slate-50 px-2 py-1">
                     Tax: <span className="font-medium">{moneyFromCents(order?.tax)}</span>
@@ -613,16 +704,19 @@ export default function AllOrders() {
                   ) : null}
                 </div>
 
-                {/* Payment breakdown chips */}
+                {/* ------------------------------------------------------------------ */}
+                {/* 💵 Payment chips: show NET (your wording), processing, etc.        */}
+                {/* ------------------------------------------------------------------ */}
                 {order?.payment_breakdown && (
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-700">
                     <span className="rounded-full bg-emerald-50 px-2 py-1 ring-1 ring-emerald-200 text-emerald-800">
-                      Net to Restaurant: {moneyFromCents(netToRestaurantCents(order))}
+                      Net: {moneyFromCents(netToRestaurantCents(order))}
                     </span>
                     <span className="rounded-full bg-slate-50 px-2 py-1 ring-1 ring-slate-200">
                       Processing: {moneyFromCents(order.payment_breakdown.processing)}
                     </span>
-                    {/* {toNumber(order.payment_breakdown.applicationFee) > 0 && (
+                    {/* If you want app fee back, uncomment below
+                    {toNumber(order.payment_breakdown.applicationFee) > 0 && (
                       <span className="rounded-full bg-slate-50 px-2 py-1 ring-1 ring-slate-200">
                         App Fee: {moneyFromCents(order.payment_breakdown.applicationFee)}
                       </span>
@@ -641,7 +735,9 @@ export default function AllOrders() {
                   </div>
                 )}
 
-                {/* Items Toggle */}
+                {/* ------------------------------------------------------------------ */}
+                {/* 🧾 Items toggle (open/close the list of items)                     */}
+                {/* ------------------------------------------------------------------ */}
                 <button
                   onClick={() => toggleExpanded(order.id)}
                   className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-left text-sm font-medium hover:bg-slate-50"
@@ -649,7 +745,7 @@ export default function AllOrders() {
                   Items ({Array.isArray(items) ? items.length : 0}) {isOpen ? '▲' : '▼'}
                 </button>
 
-                {/* Items */}
+                {/* 📃 Items list */}
                 {isOpen && Array.isArray(items) && items.length > 0 && (
                   <div className="mt-2 space-y-2">
                     {items.map((item, idx) => {
